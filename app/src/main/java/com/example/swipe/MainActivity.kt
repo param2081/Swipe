@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -53,9 +52,8 @@ fun Navigation() {
         }
 
         composable("add_product_screen") {
-            AddProductsScreen(navController = navController, LocalContext.current)
+            AddProductsScreen(navController = navController)
         }
-
     }
 }
 

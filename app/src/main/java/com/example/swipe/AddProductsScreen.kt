@@ -1,12 +1,10 @@
 package com.example.swipe
 
-import MainViewModel
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -49,36 +47,34 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 
 var ptype: String = ""
 var pname: String = ""
 var sprice: String = ""
 var tax: String = ""
-var SELECT_PICTURE = 200
 
 
 @Composable
-fun AddProductsScreen(navController: NavHostController, context: Context, viewModel: MainViewModel = viewModel(factory = viewModelFactory)) {
+fun AddProductsScreen(
+    navController: NavHostController,
+) {
     var imageUri by remember {
         mutableStateOf<Uri?>(null)
     }
     val context = LocalContext.current
-    val bitmap =  remember {
+    val bitmap = remember {
         mutableStateOf<Bitmap?>(null)
     }
 
-    val launcher = rememberLauncherForActivityResult(contract =
-    ActivityResultContracts.GetContent()) { uri: Uri? ->
+    val launcher = rememberLauncherForActivityResult(
+        contract =
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
         imageUri = uri
     }
     Spacer(modifier = Modifier.height(40.dp))
@@ -97,7 +93,7 @@ fun AddProductsScreen(navController: NavHostController, context: Context, viewMo
 
         ProductTypeSelectionScreen()
         Spacer(modifier = Modifier.height(30.dp))
-        Column() {
+        Column {
             Button(onClick = {
                 launcher.launch("image/*")
             }) {
@@ -109,18 +105,20 @@ fun AddProductsScreen(navController: NavHostController, context: Context, viewMo
             imageUri?.let {
                 if (Build.VERSION.SDK_INT < 28) {
                     bitmap.value = MediaStore.Images
-                        .Media.getBitmap(context.contentResolver,it)
+                        .Media.getBitmap(context.contentResolver, it)
 
                 } else {
                     val source = ImageDecoder
-                        .createSource(context.contentResolver,it)
+                        .createSource(context.contentResolver, it)
                     bitmap.value = ImageDecoder.decodeBitmap(source)
                 }
 
-                bitmap.value?.let {  btm ->
-                    Image(bitmap = btm.asImageBitmap(),
-                        contentDescription =null,
-                        modifier = Modifier.size(100.dp))
+                bitmap.value?.let { btm ->
+                    Image(
+                        bitmap = btm.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp)
+                    )
                 }
             }
 
@@ -135,16 +133,39 @@ fun AddProductsScreen(navController: NavHostController, context: Context, viewMo
             if (tax.isEmpty()) {
                 Toast.makeText(context, "Please fill the Tax", Toast.LENGTH_SHORT).show()
             }
-
-            val imgFile = uriToFile(context, bitmapToUri(context, bitmap.value!!)!!)
+            val file = uriToFile(context, imageUri.toString())
             if (pname.isNotEmpty() && sprice.isNotEmpty() && tax.isNotEmpty()) {
-                proceedToAdd(pname,sprice,tax,ptype,imgFile,context = context,viewModel,navController)
+
+                proceedToAdd(
+                    pname,
+                    sprice,
+                    tax,
+                    ptype,
+                    file,
+                    context = context,
+                    navController.navigate("main_screen")
+                )
             }
         }
     }
     BackHandler {
         navController.navigate("main_screen")
     }
+}
+
+@Throws(IOException::class)
+fun uriToFile(context: Context, uriString: String): File {
+    val uri = Uri.parse(uriString)
+    val inputStream = context.contentResolver.openInputStream(uri)
+    val file = File(context.cacheDir, "temp_file")
+    val outputStream = FileOutputStream(file)
+    try {
+        inputStream?.copyTo(outputStream)
+    } finally {
+        inputStream?.close()
+        outputStream.close()
+    }
+    return file
 }
 
 fun proceedToAdd(
@@ -154,8 +175,7 @@ fun proceedToAdd(
     ptype: String,
     imgFile: File,
     context: Context,
-    viewModel: MainViewModel,
-    navController: NavHostController
+    navController: Unit,
 ) {
 
     val productAdder = ProductAdder()
@@ -164,16 +184,12 @@ fun proceedToAdd(
     val productType = ptype
     val price = sprice
     val tax = tax
-//    val imageFiles = listOf(File("path/to/image1.jpg"), File("path/to/image2.jpg"))
-    // Define the media type of the image file
-
-    // Create a request body for the image file
-    productAdder.addProduct(productName, productType, price, tax,imgFile) { success, response ->
+    productAdder.addProduct(productName, productType, price, tax, imgFile) { success, _ ->
         if (success) {
-            Toast.makeText(context,"SUCCESS",Toast.LENGTH_SHORT).show()
-//            navController.navigate("main_screen ")
+            Toast.makeText(context, "SUCCESS", Toast.LENGTH_SHORT).show()
+            navController
         } else {
-            Toast.makeText(context,"FAIL",Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "FAIL", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -306,47 +322,4 @@ fun ProductTypeTextField(
         ),
         modifier = Modifier.width(270.dp)
     )
-}
-
-fun uriToFile(context: Context, uri: Uri): File {
-    val inputStream = context.contentResolver.openInputStream(uri)
-    val file = File(context.cacheDir, "temp_image_file")
-    val outputStream = FileOutputStream(file)
-    inputStream?.use { input ->
-        outputStream.use { output ->
-            input.copyTo(output)
-        }
-    }
-    return file
-}
-
-fun bitmapToUri(context: Context, bitmap: Bitmap): Uri? {
-    // Save the bitmap to a file
-    val savedImageFile = saveBitmap(context, bitmap) ?: return null
-
-    // Get the content URI using FileProvider
-    return FileProvider.getUriForFile(
-        context,
-        context.applicationContext.packageName + ".fileprovider",
-        savedImageFile
-    )
-}
-
-@Throws(IOException::class)
-private fun saveBitmap(context: Context, bitmap: Bitmap): File? {
-    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-    val imageFileName = "JPEG_$timeStamp.jpg"
-    val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-
-    val imageFile = File.createTempFile(
-        imageFileName,  /* prefix */
-        ".jpg",         /* suffix */
-        storageDir      /* directory */
-    )
-
-    val fos = FileOutputStream(imageFile)
-    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
-    fos.close()
-
-    return imageFile
 }

@@ -20,16 +20,12 @@ class ProductAdder {
         callback: (Boolean, AddProductResponse?) -> Unit
     ) {
         val client = OkHttpClient()
-        val mediaType = "image/png".toMediaTypeOrNull()
-
-        val imageRequestBody = imgFile.asRequestBody(mediaType)
-
         val requestBodyBuilder = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart("product_name", productName)
             .addFormDataPart("product_type", productType)
             .addFormDataPart("price", price)
             .addFormDataPart("tax", tax)
-            .addFormDataPart("image", imgFile.name, imageRequestBody)
+            .addFormDataPart("image", imgFile.name, imgFile.asRequestBody("multipart/form-data".toMediaTypeOrNull()))
 
         val requestBody = requestBodyBuilder.build()
 

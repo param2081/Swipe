@@ -9,7 +9,7 @@ class ProductRepository {
         return productService.getProducts()
     }
 
-    suspend fun addProductToList(product:ProductClassItem): AddProductResponse {
+    fun addProductToList(product:ProductClassItem): AddProductResponse {
         return productService.addProduct(product = product)
     }
 }
