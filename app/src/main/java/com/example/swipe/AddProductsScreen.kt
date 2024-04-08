@@ -51,6 +51,7 @@ import androidx.navigation.NavHostController
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 
 
 var ptype: String = ""
@@ -135,7 +136,6 @@ fun AddProductsScreen(
             }
             val file = uriToFile(context, imageUri.toString())
             if (pname.isNotEmpty() && sprice.isNotEmpty() && tax.isNotEmpty()) {
-
                 proceedToAdd(
                     pname,
                     sprice,
@@ -154,9 +154,16 @@ fun AddProductsScreen(
 }
 
 @Throws(IOException::class)
-fun uriToFile(context: Context, uriString: String): File {
+fun uriToFile(context: Context, uriString: String?): File {
     val uri = Uri.parse(uriString)
-    val inputStream = context.contentResolver.openInputStream(uri)
+    var inputStream:InputStream?=null
+    inputStream = try {
+        context.contentResolver.openInputStream(uri)
+
+    }
+    catch (e:Exception){
+        null
+    }
     val file = File(context.cacheDir, "temp_file")
     val outputStream = FileOutputStream(file)
     try {
